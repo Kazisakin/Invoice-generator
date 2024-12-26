@@ -37,6 +37,8 @@ public class LoginScreen extends VBox {
 
         Button loginBtn = new Button("Login");
         loginBtn.setDefaultButton(true);
+        loginBtn.setStyle("-fx-background-color: #2980B9; -fx-text-fill: white;");
+        loginBtn.setPrefWidth(100);
 
         Label feedbackLabel = new Label();
         feedbackLabel.setStyle("-fx-text-fill: red;");

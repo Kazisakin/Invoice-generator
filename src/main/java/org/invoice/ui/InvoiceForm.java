@@ -9,11 +9,8 @@ import org.invoice.controller.InvoiceController;
 import org.invoice.domain.Course;
 import org.invoice.domain.Invoice;
 import org.invoice.domain.Student;
-import org.invoice.repository.InvoiceRepository;
 import org.invoice.repository.InvoiceRepositoryImpl;
 import org.invoice.service.InvoiceService;
-
-import java.util.Date;
 
 public class InvoiceForm extends VBox {
 
@@ -21,8 +18,7 @@ public class InvoiceForm extends VBox {
 
     public InvoiceForm() {
         // Initialize repository and service
-        InvoiceRepository invoiceRepo = new InvoiceRepositoryImpl();
-        InvoiceService invoiceService = new InvoiceService(invoiceRepo);
+        InvoiceService invoiceService = new InvoiceService(new InvoiceRepositoryImpl());
         this.invoiceController = new InvoiceController(invoiceService);
 
         initUI();
@@ -74,6 +70,9 @@ public class InvoiceForm extends VBox {
         formGrid.add(discountField, 1, 4);
 
         Button saveBtn = new Button("Save Invoice");
+        saveBtn.setStyle("-fx-background-color: #27AE60; -fx-text-fill: white;");
+        saveBtn.setPrefWidth(150);
+
         Label feedbackLabel = new Label();
 
         saveBtn.setOnAction(e -> {
@@ -116,15 +115,20 @@ public class InvoiceForm extends VBox {
 
             // Create Invoice
             Invoice invoice = invoiceController.createInvoice(student, course, discount);
-            feedbackLabel.setStyle("-fx-text-fill: green;");
-            feedbackLabel.setText("Invoice created with ID: " + invoice.getId());
+            if (invoice != null) {
+                feedbackLabel.setStyle("-fx-text-fill: green;");
+                feedbackLabel.setText("Invoice created with ID: " + invoice.getId());
 
-            // Optionally, clear the form
-            studentNameField.clear();
-            studentEmailField.clear();
-            courseNameField.clear();
-            feeField.clear();
-            discountField.clear();
+                // Optionally, clear the form
+                studentNameField.clear();
+                studentEmailField.clear();
+                courseNameField.clear();
+                feeField.clear();
+                discountField.clear();
+            } else {
+                feedbackLabel.setStyle("-fx-text-fill: red;");
+                feedbackLabel.setText("Failed to create invoice. Please check the input data.");
+            }
         });
 
         getChildren().addAll(title, formGrid, saveBtn, feedbackLabel);

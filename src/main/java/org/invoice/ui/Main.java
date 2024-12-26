@@ -5,6 +5,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.invoice.controller.LoginController;
+import org.invoice.domain.User;
 import org.invoice.repository.UserRepository;
 import org.invoice.repository.UserRepositoryImpl;
 import org.invoice.service.UserService;
@@ -30,13 +31,15 @@ public class Main extends Application {
 
         // Handle successful login to switch to the dashboard
         loginScreen.setOnLoginSuccess(user -> {
-            // You can pass the user to the dashboard if needed
+            // Pass the user to the dashboard if needed
             dashboard.setUser(user);
-            mainLayout.setCenter(dashboard);
+            mainLayout.setTop(dashboard.getNavigationBar());
+            mainLayout.setCenter(new WelcomePanel()); // Display WelcomePanel after login
         });
 
         // Set up the scene and stage
         Scene scene = new Scene(mainLayout, 800, 600);
+        // If using CSS
         primaryStage.setTitle("JavaFX Invoice Application");
         primaryStage.setScene(scene);
         primaryStage.show();

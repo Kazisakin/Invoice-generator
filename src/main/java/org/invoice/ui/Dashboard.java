@@ -3,68 +3,82 @@ package org.invoice.ui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
+import org.invoice.controller.LoginController;
 import org.invoice.domain.User;
+import org.invoice.repository.UserRepositoryImpl;
+import org.invoice.service.UserService;
 
-public class Dashboard extends VBox {
+public class Dashboard {
 
     private User currentUser;
+    private HBox navigationBar;
 
     public Dashboard() {
-        initUI();
+        initNavigationBar();
     }
 
     public void setUser(User user) {
         this.currentUser = user;
-        // You can use this user information as needed
+        // You can use this user information as needed, e.g., display username
     }
 
-    private void initUI() {
-        setSpacing(20);
-        setPadding(new Insets(20));
-        setAlignment(Pos.CENTER);
+    public HBox getNavigationBar() {
+        return navigationBar;
+    }
+
+    private void initNavigationBar() {
+        navigationBar = new HBox();
+        navigationBar.setSpacing(10);
+        navigationBar.setPadding(new Insets(10));
+        navigationBar.setAlignment(Pos.CENTER_LEFT);
+        navigationBar.setStyle("-fx-background-color: #2C3E50;");
 
         Button createInvoiceBtn = new Button("Create Invoice");
-        createInvoiceBtn.setMaxWidth(200);
-
         Button listInvoicesBtn = new Button("List Invoices");
-        listInvoicesBtn.setMaxWidth(200);
-
         Button generatePdfBtn = new Button("Generate PDF");
-        generatePdfBtn.setMaxWidth(200);
-
         Button logoutBtn = new Button("Logout");
-        logoutBtn.setMaxWidth(200);
+
+        // Style the buttons
+        String buttonStyle = "-fx-background-color: #34495E; -fx-text-fill: white;";
+        createInvoiceBtn.setStyle(buttonStyle);
+        listInvoicesBtn.setStyle(buttonStyle);
+        generatePdfBtn.setStyle(buttonStyle);
+        logoutBtn.setStyle(buttonStyle);
+
+        // Set button widths for consistency
+        createInvoiceBtn.setPrefWidth(120);
+        listInvoicesBtn.setPrefWidth(120);
+        generatePdfBtn.setPrefWidth(120);
+        logoutBtn.setPrefWidth(80);
 
         // Handle button actions
         createInvoiceBtn.setOnAction(e -> {
             // Switch to Invoice Form
-            getScene().lookup(".border-pane").setUserData("invoiceForm");
-            // Alternatively, use a central controller to switch views
-            // For simplicity, you can embed the InvoiceForm here
             InvoiceForm invoiceForm = new InvoiceForm();
-            ((BorderPane) getParent()).setCenter(invoiceForm);
+            ((BorderPane) navigationBar.getParent()).setCenter(invoiceForm);
         });
 
         listInvoicesBtn.setOnAction(e -> {
             // Switch to Invoice List
             InvoiceListPanel invoiceList = new InvoiceListPanel();
-            ((BorderPane) getParent()).setCenter(invoiceList);
+            ((BorderPane) navigationBar.getParent()).setCenter(invoiceList);
         });
 
         generatePdfBtn.setOnAction(e -> {
             // Switch to PDF Generation Panel
             PdfPanel pdfPanel = new PdfPanel();
-            ((BorderPane) getParent()).setCenter(pdfPanel);
+            ((BorderPane) navigationBar.getParent()).setCenter(pdfPanel);
         });
 
         logoutBtn.setOnAction(e -> {
             // Return to Login Screen
-            LoginScreen loginScreen = new LoginScreen(null); // Pass appropriate controller if needed
-            ((BorderPane) getParent()).setCenter(loginScreen);
+            BorderPane mainLayout = (BorderPane) navigationBar.getParent();
+            mainLayout.setTop(null);
+            mainLayout.setCenter(new LoginScreen(new LoginController(new UserService(new UserRepositoryImpl()))));
         });
 
-        getChildren().addAll(createInvoiceBtn, listInvoicesBtn, generatePdfBtn, logoutBtn);
+        navigationBar.getChildren().addAll(createInvoiceBtn, listInvoicesBtn, generatePdfBtn, logoutBtn);
     }
 }

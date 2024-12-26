@@ -1,3 +1,5 @@
+// File: src/main/java/org/invoice/repository/ConnectionManager.java
+
 package org.invoice.repository;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -15,7 +17,7 @@ public class ConnectionManager {
 
     static {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://localhost:3306/teaching_institute");
+        config.setJdbcUrl("jdbc:mysql://localhost:3306/teaching_institute"); // Update as per your DB
         config.setUsername("root"); // Replace with your DB username
         config.setPassword("123456"); // Replace with your DB password
         config.setMaximumPoolSize(10);

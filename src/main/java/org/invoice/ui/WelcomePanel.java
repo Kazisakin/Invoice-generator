@@ -4,6 +4,9 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 
+/**
+ * A simple welcome panel displayed after a successful login.
+ */
 public class WelcomePanel extends StackPane {
 
     public WelcomePanel() {
