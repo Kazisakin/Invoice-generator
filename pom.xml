@@ -14,15 +14,18 @@
     <description>JavaFX Invoice Application Connected to MySQL</description>
 
     <properties>
-        <!-- Set to match your installed JDK version -->
+        <!-- Match your installed Java version -->
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- JavaFX version should match the dependencies -->
+
+        <!-- JavaFX version, matching your environment or desired version -->
         <javafx.version>21.0.1</javafx.version>
-        <!-- SLF4J and Logback versions -->
+
+        <!-- SLF4J & Logback versions for logging -->
         <slf4j.version>1.7.36</slf4j.version>
         <logback.version>1.4.6</logback.version>
-        <!-- HikariCP version -->
+
+        <!-- HikariCP for connection pooling -->
         <hikaricp.version>5.0.1</hikaricp.version>
     </properties>
 
@@ -35,7 +38,7 @@
             <version>8.0.33</version>
         </dependency>
 
-        <!-- JavaFX Dependencies -->
+        <!-- JavaFX Dependencies (use org.openjfx) -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -47,7 +50,7 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- iText 7 for PDF Generation -->
+        <!-- iText 7 for PDF generation -->
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>kernel</artifactId>
@@ -102,7 +105,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Exec Maven Plugin: Run JavaFX Application -->
+            <!-- Exec Maven Plugin: Run JavaFX Application via `mvn exec:java` -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -115,8 +118,10 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!-- Main class that extends Application -->
                     <mainClass>org.invoice.ui.Main</mainClass>
                     <classpathScope>compile</classpathScope>
+                    <!-- Add modules if you run into JavaFX module issues -->
                     <arguments>
                         <argument>--add-modules</argument>
                         <argument>javafx.controls,javafx.fxml</argument>

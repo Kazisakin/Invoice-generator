@@ -2,46 +2,49 @@ package org.invoice.ui;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import org.invoice.controller.InvoiceController;
 import org.invoice.controller.LoginController;
 import org.invoice.domain.User;
-import org.invoice.repository.UserRepository;
-import org.invoice.repository.UserRepositoryImpl;
+import org.invoice.repository.*;
+import org.invoice.service.InvoiceService;
 import org.invoice.service.UserService;
 
+/**
+ * Main JavaFX entry point.
+ */
 public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Initialize repositories and services
+        // Setup repositories
+        InvoiceRepository invoiceRepo = new InvoiceRepositoryImpl();
         UserRepository userRepo = new UserRepositoryImpl();
+        // Add CourseRepository, StudentRepository, etc. if needed
+
+        // Setup services
+        InvoiceService invoiceService = new InvoiceService(invoiceRepo);
         UserService userService = new UserService(userRepo);
+
+        // Setup controllers
+        InvoiceController invoiceController = new InvoiceController(invoiceService);
         LoginController loginController = new LoginController(userService);
 
-        // Create the main layout
-        BorderPane mainLayout = new BorderPane();
-
-        // Initialize different UI panels
+        // Create the LoginScreen
         LoginScreen loginScreen = new LoginScreen(loginController);
-        Dashboard dashboard = new Dashboard();
-
-        // Set the initial center to the login screen
-        mainLayout.setCenter(loginScreen);
-
-        // Handle successful login to switch to the dashboard
-        loginScreen.setOnLoginSuccess(user -> {
-            // Pass the user to the dashboard if needed
-            dashboard.setUser(user);
-            mainLayout.setTop(dashboard.getNavigationBar());
-            mainLayout.setCenter(new WelcomePanel()); // Display WelcomePanel after login
+        // Provide a callback for when login succeeds
+        loginScreen.setOnLoginSuccess((User user) -> {
+            // user is the successfully logged-in User
+            MainView mainView = new MainView(invoiceController, user);
+            Scene mainScene = new Scene(mainView, 1000, 700);
+            primaryStage.setScene(mainScene);
+            primaryStage.setTitle("Invoice Management - " + user.getUsername());
         });
 
-        // Set up the scene and stage
-        Scene scene = new Scene(mainLayout, 800, 600);
-        // If using CSS
-        primaryStage.setTitle("JavaFX Invoice Application");
-        primaryStage.setScene(scene);
+        // Show the login screen first
+        Scene loginScene = new Scene(loginScreen, 600, 400);
+        primaryStage.setTitle("Invoice Login");
+        primaryStage.setScene(loginScene);
         primaryStage.show();
     }
 

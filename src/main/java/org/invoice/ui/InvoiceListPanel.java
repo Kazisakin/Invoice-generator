@@ -4,71 +4,121 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.BorderPane;
 import org.invoice.controller.InvoiceController;
 import org.invoice.domain.Invoice;
-import org.invoice.repository.InvoiceRepository;
-import org.invoice.repository.InvoiceRepositoryImpl;
-import org.invoice.service.InvoiceService;
+import org.invoice.exception.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class InvoiceListPanel extends VBox {
+public class InvoiceListPanel extends BorderPane {
+
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceListPanel.class);
 
     private final InvoiceController invoiceController;
-    private TableView<Invoice> tableView;
+    private TableView<Invoice> invoiceTable;
 
-    public InvoiceListPanel() {
-        // Initialize repository and service
-        InvoiceRepository invoiceRepo = new InvoiceRepositoryImpl();
-        InvoiceService invoiceService = new InvoiceService(invoiceRepo);
-        this.invoiceController = new InvoiceController(invoiceService);
-
+    public InvoiceListPanel(InvoiceController invoiceController) {
+        this.invoiceController = invoiceController;
         initUI();
     }
 
     private void initUI() {
-        setSpacing(20);
         setPadding(new Insets(20));
+        Label titleLabel = new Label("List of Invoices");
+        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        setTop(titleLabel);
+        BorderPane.setMargin(titleLabel, new Insets(0,0,10,0));
 
-        Label title = new Label("All Invoices");
-        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-        tableView = new TableView<>();
-        setupTableColumns();
+        invoiceTable = new TableView<>();
+        setupColumns();
         loadInvoices();
+        setCenter(invoiceTable);
 
-        getChildren().addAll(title, tableView);
+        // Buttons (bottom)
+        Button refreshBtn = new Button("Refresh");
+        refreshBtn.setOnAction(e -> loadInvoices());
+
+        Button deleteBtn = new Button("Delete Selected");
+        deleteBtn.setOnAction(e -> deleteSelectedInvoice());
+
+        ToolBar toolBar = new ToolBar(refreshBtn, deleteBtn);
+        setBottom(toolBar);
     }
 
-    private void setupTableColumns() {
-        TableColumn<Invoice, Integer> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(data -> new javafx.beans.property.SimpleIntegerProperty(data.getValue().getId()).asObject());
+    private void setupColumns() {
+        TableColumn<Invoice, Number> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(data -> new javafx.beans.property.SimpleIntegerProperty(data.getValue().getId()));
 
-        TableColumn<Invoice, String> studentNameCol = new TableColumn<>("Student Name");
-        studentNameCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getStudent().getName()));
+        TableColumn<Invoice, String> stuCol = new TableColumn<>("Student");
+        stuCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                data.getValue().getStudent().getName())
+        );
 
-        TableColumn<Invoice, String> courseNameCol = new TableColumn<>("Course Name");
-        courseNameCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getCourse().getName()));
+        TableColumn<Invoice, String> courseCol = new TableColumn<>("Course");
+        courseCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                data.getValue().getCourse().getName())
+        );
 
-        TableColumn<Invoice, Double> feeCol = new TableColumn<>("Fee");
-        feeCol.setCellValueFactory(data -> new javafx.beans.property.SimpleDoubleProperty(data.getValue().getCourse().getFee()).asObject());
+        TableColumn<Invoice, Number> discCol = new TableColumn<>("Discount");
+        discCol.setCellValueFactory(data -> new javafx.beans.property.SimpleDoubleProperty(data.getValue().getDiscount()));
 
-        TableColumn<Invoice, Double> discountCol = new TableColumn<>("Discount");
-        discountCol.setCellValueFactory(data -> new javafx.beans.property.SimpleDoubleProperty(data.getValue().getDiscount()).asObject());
+        TableColumn<Invoice, Number> totalCol = new TableColumn<>("Total");
+        totalCol.setCellValueFactory(data -> new javafx.beans.property.SimpleDoubleProperty(data.getValue().getTotalAmount()));
 
-        TableColumn<Invoice, Double> totalCol = new TableColumn<>("Total Amount");
-        totalCol.setCellValueFactory(data -> new javafx.beans.property.SimpleDoubleProperty(data.getValue().getTotalAmount()).asObject());
+        TableColumn<Invoice, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                data.getValue().getInvoiceDate().toString())
+        );
 
-        TableColumn<Invoice, String> dateCol = new TableColumn<>("Invoice Date");
-        dateCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getInvoiceDate().toString()));
-
-        tableView.getColumns().addAll(idCol, studentNameCol, courseNameCol, feeCol, discountCol, totalCol, dateCol);
+        invoiceTable.getColumns().addAll(idCol, stuCol, courseCol, discCol, totalCol, dateCol);
     }
 
     private void loadInvoices() {
-        List<Invoice> invoices = invoiceController.listAllInvoices();
-        ObservableList<Invoice> data = FXCollections.observableArrayList(invoices);
-        tableView.setItems(data);
+        try {
+            List<Invoice> invoices = invoiceController.listAllInvoices();
+            ObservableList<Invoice> obsList = FXCollections.observableArrayList(invoices);
+            invoiceTable.setItems(obsList);
+            logger.info("Loaded {} invoices.", invoices.size());
+        } catch (ServiceException ex) {
+            logger.error("Failed to load invoices.", ex);
+            showAlert("Error", "Failed to load invoices.");
+        }
+    }
+
+    private void deleteSelectedInvoice() {
+        Invoice selected = invoiceTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Warning", "No invoice selected.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete invoice ID: " + selected.getId() + "?", ButtonType.OK, ButtonType.CANCEL);
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    boolean deleted = invoiceController.deleteInvoice(selected.getId());
+                    if (deleted) {
+                        showAlert("Success", "Invoice deleted.");
+                        loadInvoices();
+                    } else {
+                        showAlert("Error", "Could not delete invoice.");
+                    }
+                } catch (ServiceException e) {
+                    logger.error("Error deleting invoice ID: {}", selected.getId(), e);
+                    showAlert("Error", "Failed to delete invoice.");
+                }
+            }
+        });
+    }
+
+    private void showAlert(String title, String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
     }
 }

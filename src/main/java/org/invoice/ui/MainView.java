@@ -1,51 +1,109 @@
 package org.invoice.ui;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import org.invoice.controller.InvoiceController;
+import org.invoice.domain.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * A unified main view with a navigation bar (top),
+ * and dynamic center content.
+ */
 public class MainView extends BorderPane {
 
-    private HBox topMenu;     // Our nav bar
-    private InvoiceForm invoiceForm;
-    private InvoiceListPanel invoiceListPanel;
-    private PdfPanel pdfPanel; // Hypothetical panel for PDF generation
+    private static final Logger logger = LoggerFactory.getLogger(MainView.class);
 
-    public MainView() {
+    private final InvoiceController invoiceController;
+    private final User currentUser;
+
+    /**
+     * Constructs a MainView with the specified InvoiceController and logged-in User.
+     *
+     * @param invoiceController the controller for invoice operations
+     * @param user the logged-in User
+     */
+    public MainView(InvoiceController invoiceController, User user) {
+        this.invoiceController = invoiceController;
+        this.currentUser = user;
         initUI();
     }
 
     private void initUI() {
-        // Create the top menu bar
-        topMenu = new HBox();
-        topMenu.setSpacing(10);
-        topMenu.setPadding(new Insets(10));
+        // Top navigation
+        HBox navBar = new HBox(10);
+        navBar.setPadding(new Insets(10));
+        navBar.setStyle("-fx-background-color: #2C3E50;");
+        navBar.setAlignment(Pos.CENTER_LEFT);
+
+        // Navigation Buttons
+        Button homeBtn = new Button("Home");
+        styleNavButton(homeBtn);
 
         Button createInvoiceBtn = new Button("Create Invoice");
+        styleNavButton(createInvoiceBtn);
+
         Button listInvoicesBtn = new Button("List Invoices");
-        Button generatePdfBtn  = new Button("Generate PDF");
+        styleNavButton(listInvoicesBtn);
 
-        // Optional: a "Back" or "Home" button if you want
-        Button homeBtn = new Button("Home");
+        Button generatePdfBtn = new Button("Generate PDF");
+        styleNavButton(generatePdfBtn);
 
-        // Initialize sub-panels (center content)
-        invoiceForm = new InvoiceForm();
-        invoiceListPanel = new InvoiceListPanel();
-        pdfPanel = new PdfPanel();
+        Button logoutBtn = new Button("Logout");
+        styleNavButton(logoutBtn);
 
-        // Button events
-        createInvoiceBtn.setOnAction(e -> setCenter(invoiceForm));
-        listInvoicesBtn.setOnAction(e -> setCenter(invoiceListPanel));
-        generatePdfBtn.setOnAction(e -> setCenter(pdfPanel));
-        homeBtn.setOnAction(e -> setCenter(null)); // Clears or shows a home screen
+        Label welcomeLabel = new Label("Welcome, " + currentUser.getUsername() + "!");
+        welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 0 0 0 20;");
 
-        topMenu.getChildren().addAll(homeBtn, createInvoiceBtn, listInvoicesBtn, generatePdfBtn);
+        navBar.getChildren().addAll(homeBtn, createInvoiceBtn, listInvoicesBtn, generatePdfBtn, logoutBtn, welcomeLabel);
+        setTop(navBar);
 
-        // Put topMenu at the top of this BorderPane
-        setTop(topMenu);
+        // Default center content (Home)
+        setCenter(new WelcomePanel());
 
-        // Optionally, show a default center panel or a "Welcome" message
-        // setCenter(new WelcomePanel()); // or null
+        // Button actions
+        homeBtn.setOnAction(e -> setCenter(new WelcomePanel()));
+
+        createInvoiceBtn.setOnAction(e -> {
+            InvoiceForm form = new InvoiceForm(invoiceController);
+            setCenter(form);
+        });
+
+        listInvoicesBtn.setOnAction(e -> {
+            InvoiceListPanel listPanel = new InvoiceListPanel(invoiceController);
+            setCenter(listPanel);
+        });
+
+        generatePdfBtn.setOnAction(e -> {
+            PdfPanel pdfPanel = new PdfPanel(invoiceController);
+            setCenter(pdfPanel);
+        });
+
+        logoutBtn.setOnAction(e -> {
+            // Build a new LoginScreen (fresh login)
+            LoginScreen newLoginScreen = new LoginScreen(
+                    // create a new LoginController if needed
+                    new org.invoice.controller.LoginController(
+                            new org.invoice.service.UserService(new org.invoice.repository.UserRepositoryImpl())
+                    )
+            );
+            // On login success, show a new MainView
+            newLoginScreen.setOnLoginSuccess(loggedInUser -> {
+                MainView newMainView = new MainView(invoiceController, loggedInUser);
+                getScene().setRoot(newMainView);
+            });
+            getScene().setRoot(newLoginScreen);
+            logger.info("User {} logged out.", currentUser.getUsername());
+        });
+    }
+
+    private void styleNavButton(Button btn) {
+        btn.setStyle("-fx-background-color: #34495E; -fx-text-fill: white;");
+        btn.setPrefHeight(30);
     }
 }
