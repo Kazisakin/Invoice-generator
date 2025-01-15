@@ -10,13 +10,17 @@ import org.invoice.repository.UserRepositoryImpl;
 import org.invoice.service.InvoiceService;
 import org.invoice.service.UserService;
 import org.invoice.domain.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main extends Application {
     private Stage primaryStage;
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     @Override
     public void start(Stage stage){
         primaryStage = stage;
+
         InvoiceController invCtrl = new InvoiceController(new InvoiceService(new InvoiceRepositoryImpl()));
         LoginController loginCtrl = new LoginController(new UserService(new UserRepositoryImpl()));
 
@@ -33,6 +37,7 @@ public class Main extends Application {
     }
 
     public static void main(String[] args){
-        launch(args);
+        logger.info("SLF4J and Logback are working!");
+        Application.launch(Main.class, args);
     }
 }

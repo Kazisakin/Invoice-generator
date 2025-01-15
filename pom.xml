@@ -18,10 +18,10 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- JavaFX version, matching your environment or desired version -->
+        <!-- JavaFX version -->
         <javafx.version>21.0.1</javafx.version>
 
-        <!-- SLF4J & Logback versions for logging -->
+        <!-- SLF4J & Logback versions -->
         <slf4j.version>1.7.36</slf4j.version>
         <logback.version>1.4.6</logback.version>
 
@@ -38,7 +38,7 @@
             <version>8.0.33</version>
         </dependency>
 
-        <!-- JavaFX Dependencies (use org.openjfx) -->
+        <!-- JavaFX Dependencies -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -63,16 +63,21 @@
         </dependency>
 
         <!-- SLF4J API and Logback for Logging -->
+        <!-- SLF4J API -->
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.36</version>
         </dependency>
+
+
+        <!-- Logback Classic (SLF4J Binding) -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
         </dependency>
+
 
         <!-- HikariCP for Connection Pooling -->
         <dependency>
@@ -110,26 +115,20 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                    </execution>
-                </executions>
                 <configuration>
-                    <!-- Main class that extends Application -->
                     <mainClass>org.invoice.ui.Main</mainClass>
-                    <classpathScope>compile</classpathScope>
-                    <!-- Add modules if you run into JavaFX module issues -->
                     <arguments>
+                        <argument>--module-path</argument>
+                        <argument>D:\openjfx-21.0.5_windows-x64_bin-sdk\javafx-sdk-21.0.5\lib</argument>
                         <argument>--add-modules</argument>
                         <argument>javafx.controls,javafx.fxml</argument>
                     </arguments>
                 </configuration>
             </plugin>
 
+
         </plugins>
     </build>
+
 
 </project>

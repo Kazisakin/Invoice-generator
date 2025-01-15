@@ -31,4 +31,5 @@ public class InvoiceController {
     public List<Invoice> searchInvoicesByName(String name){
         return invoiceService.searchInvoicesByStudentName(name);
     }
+
 }
