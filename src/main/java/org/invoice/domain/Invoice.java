@@ -1,91 +1,54 @@
-// File: src/main/java/org/invoice/domain/Invoice.java
-
 package org.invoice.domain;
 
-import java.util.Date;
+import java.time.LocalDate;
 
-/**
- * Represents an invoice in the system.
- */
 public class Invoice {
-    private Integer id;
+    private Long id;
+    private String invoiceNumber; // unique, e.g., INV2023-0001
     private Student student;
-    private Course course;
+    private double subtotal;
     private double discount;
-    private double totalAmount;
-    private Date invoiceDate;
+    private double taxRate;
+    private double taxAmount;
+    private double total;
+    private LocalDate dateIssued;
+    private LocalDate dueDate;
 
-    // Constructors
     public Invoice() {}
 
-    public Invoice(Integer id, Student student, Course course, double discount, double totalAmount, Date invoiceDate) {
-        this.id = id;
-        this.student = student;
-        this.course = course;
-        this.discount = discount;
-        this.totalAmount = totalAmount;
-        this.invoiceDate = invoiceDate;
+    public Invoice(Long i, String invNum, Student s, double sub, double disc, double tr, double ta, double tot, LocalDate di, LocalDate dd) {
+        id = i; invoiceNumber = invNum; student = s;
+        subtotal = sub; discount = disc; taxRate = tr;
+        taxAmount = ta; total = tot; dateIssued = di; dueDate = dd;
     }
 
-    // Getters and Setters
-    public Integer getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long i) { id = i; }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public void setInvoiceNumber(String n) { invoiceNumber = n; }
 
-    public Student getStudent() {
-        return student;
-    }
+    public Student getStudent() { return student; }
+    public void setStudent(Student s) { student = s; }
 
-    public void setStudent(Student student) {
-        this.student = student;
-    }
+    public double getSubtotal() { return subtotal; }
+    public void setSubtotal(double d) { subtotal = d; }
 
-    public Course getCourse() {
-        return course;
-    }
+    public double getDiscount() { return discount; }
+    public void setDiscount(double d) { discount = d; }
 
-    public void setCourse(Course course) {
-        this.course = course;
-    }
+    public double getTaxRate() { return taxRate; }
+    public void setTaxRate(double t) { taxRate = t; }
 
-    public double getDiscount() {
-        return discount;
-    }
+    public double getTaxAmount() { return taxAmount; }
+    public void setTaxAmount(double t) { taxAmount = t; }
 
-    public void setDiscount(double discount) {
-        this.discount = discount;
-    }
+    public double getTotal() { return total; }
+    public void setTotal(double t) { total = t; }
 
-    public double getTotalAmount() {
-        return totalAmount;
-    }
+    public LocalDate getDateIssued() { return dateIssued; }
+    public void setDateIssued(LocalDate d) { dateIssued = d; }
 
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public Date getInvoiceDate() {
-        return invoiceDate;
-    }
-
-    public void setInvoiceDate(Date invoiceDate) {
-        this.invoiceDate = invoiceDate;
-    }
-
-    // toString
-    @Override
-    public String toString() {
-        return "Invoice{" +
-                "id=" + id +
-                ", student=" + student +
-                ", course=" + course +
-                ", discount=" + discount +
-                ", totalAmount=" + totalAmount +
-                ", invoiceDate=" + invoiceDate +
-                '}';
-    }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate d) { dueDate = d; }
 }

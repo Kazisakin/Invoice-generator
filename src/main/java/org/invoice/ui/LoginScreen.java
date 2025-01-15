@@ -10,65 +10,52 @@ import org.invoice.domain.User;
 import java.util.function.Consumer;
 
 public class LoginScreen extends VBox {
-
     private final LoginController loginController;
-    private Consumer<User> onLoginSuccess;
+    private final Consumer<User> onLoginSuccess;
 
-    public LoginScreen(LoginController loginController) {
-        this.loginController = loginController;
-        initUI();
-    }
+    public LoginScreen(LoginController ctrl, Consumer<User> successCallback){
+        loginController = ctrl;
+        onLoginSuccess = successCallback;
 
-    private void initUI() {
-        setSpacing(15);
-        setPadding(new Insets(20));
+        setSpacing(20);
+        setPadding(new Insets(25));
         setAlignment(Pos.CENTER);
+        setStyle("-fx-background-color: linear-gradient(to right, #34495E, #2C3E50);");
 
-        Label titleLabel = new Label("Login");
-        titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        Label title=new Label("Login to Invoice System");
+        title.setStyle("-fx-font-size: 24px; -fx-text-fill: #ECF0F1; -fx-font-weight: bold;");
 
-        TextField usernameField = new TextField();
-        usernameField.setPromptText("Username");
-        usernameField.setMaxWidth(200);
+        TextField userField=new TextField();
+        userField.setPromptText("Username");
+        userField.setMaxWidth(220);
 
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Password");
-        passwordField.setMaxWidth(200);
+        PasswordField passField=new PasswordField();
+        passField.setPromptText("Password");
+        passField.setMaxWidth(220);
 
-        Button loginBtn = new Button("Login");
-        loginBtn.setDefaultButton(true);
-        loginBtn.setStyle("-fx-background-color: #2980B9; -fx-text-fill: white;");
+        Button loginBtn=new Button("Login");
+        loginBtn.setStyle("-fx-background-color: #27AE60; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         loginBtn.setPrefWidth(100);
 
-        Label feedbackLabel = new Label();
-        feedbackLabel.setStyle("-fx-text-fill: red;");
+        Label feedback=new Label();
+        feedback.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
 
-        loginBtn.setOnAction(e -> {
-            String username = usernameField.getText().trim();
-            String password = passwordField.getText().trim();
-
-            if (username.isEmpty() || password.isEmpty()) {
-                feedbackLabel.setText("Please enter both username and password.");
+        loginBtn.setOnAction(e->{
+            String username = userField.getText().trim();
+            String password = passField.getText().trim();
+            if(username.isEmpty()||password.isEmpty()){
+                feedback.setText("Please fill both fields");
                 return;
             }
-
             User user = loginController.login(username, password);
-            if (user != null) {
-                feedbackLabel.setStyle("-fx-text-fill: green;");
-                feedbackLabel.setText("Login successful! Welcome " + user.getUsername());
-                if (onLoginSuccess != null) {
-                    onLoginSuccess.accept(user);
-                }
+            if(user!=null){
+                feedback.setText("Login success");
+                onLoginSuccess.accept(user);
             } else {
-                feedbackLabel.setStyle("-fx-text-fill: red;");
-                feedbackLabel.setText("Invalid username or password.");
+                feedback.setText("Invalid credentials");
             }
         });
 
-        getChildren().addAll(titleLabel, usernameField, passwordField, loginBtn, feedbackLabel);
-    }
-
-    public void setOnLoginSuccess(Consumer<User> onLoginSuccess) {
-        this.onLoginSuccess = onLoginSuccess;
+        getChildren().addAll(title, userField, passField, loginBtn, feedback);
     }
 }

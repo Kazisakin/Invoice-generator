@@ -1,148 +1,83 @@
-// File: src/main/java/org/invoice/repository/StudentRepositoryImpl.java
-
 package org.invoice.repository;
 
 import org.invoice.domain.Student;
 import org.invoice.exception.RepositoryException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Implementation of the StudentRepository interface.
- */
 public class StudentRepositoryImpl implements StudentRepository {
-
-    private static final Logger logger = LoggerFactory.getLogger(StudentRepositoryImpl.class);
-
     private final Connection connection;
 
-    /**
-     * Constructs a StudentRepositoryImpl with a database connection.
-     *
-     * @throws RepositoryException If a connection cannot be established.
-     */
     public StudentRepositoryImpl() {
-        try {
-            this.connection = ConnectionManager.getConnection();
-        } catch (SQLException e) {
-            logger.error("Failed to establish database connection in StudentRepositoryImpl", e);
-            throw new RepositoryException("Database connection failed.", e);
-        }
+        try { connection = ConnectionManager.getConnection(); }
+        catch(SQLException e){ throw new RepositoryException("DB error", e); }
     }
-
-    @Override
-    public Student save(Student student) {
-        String insertSQL = "INSERT INTO students (name, email) VALUES (?, ?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, student.getName());
-            pstmt.setString(2, student.getEmail());
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows == 0) {
-                throw new RepositoryException("Creating student failed, no rows affected.");
-            }
-
-            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    student.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new RepositoryException("Creating student failed, no ID obtained.");
+    public Student save(Student s) {
+        if(s.getId()==null){
+            String sql="INSERT INTO students (name, email) VALUES(?,?)";
+            // If you want to store 'uniqueId' in DB, add a column 'unique_id' to the table
+            try(PreparedStatement ps=connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+                ps.setString(1,s.getName());
+                ps.setString(2,s.getEmail());
+                ps.executeUpdate();
+                try(ResultSet rs=ps.getGeneratedKeys()){ if(rs.next()) s.setId(rs.getLong(1)); }
+            }catch(Exception e){ throw new RepositoryException("Save student failed", e); }
+        } else {
+            String sql="UPDATE students SET name=?, email=? WHERE id=?";
+            try(PreparedStatement ps=connection.prepareStatement(sql)){
+                ps.setString(1,s.getName());
+                ps.setString(2,s.getEmail());
+                ps.setLong(3,s.getId());
+                ps.executeUpdate();
+            }catch(Exception e){ throw new RepositoryException("Update student failed", e); }
+        }
+        return s;
+    }
+    public Student findById(Long id){
+        String sql="SELECT id, name, email FROM students WHERE id=?";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setLong(1,id);
+            try(ResultSet rs=ps.executeQuery()){
+                if(rs.next()){
+                    Student st=new Student();
+                    st.setId(rs.getLong("id"));
+                    st.setName(rs.getString("name"));
+                    st.setEmail(rs.getString("email"));
+                    return st;
                 }
             }
-            logger.info("Student saved successfully: {}", student);
-            return student;
-        } catch (SQLException e) {
-            logger.error("Error saving student: {}", student, e);
-            throw new RepositoryException("Error saving student.", e);
-        }
-    }
-
-    @Override
-    public Student findById(int id) {
-        String query = "SELECT id, name, email FROM students WHERE id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setInt(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    Student student = new Student();
-                    student.setId(rs.getInt("id"));
-                    student.setName(rs.getString("name"));
-                    student.setEmail(rs.getString("email"));
-                    logger.info("Student found: {}", student);
-                    return student;
-                }
-            }
-        } catch (SQLException e) {
-            logger.error("Error finding student with ID: {}", id, e);
-            throw new RepositoryException("Error finding student by ID.", e);
-        }
-        logger.warn("Student with ID: {} not found.", id);
+        }catch(Exception e){ throw new RepositoryException("Find student by id failed", e); }
         return null;
     }
-
-    @Override
-    public List<Student> findAll() {
-        List<Student> students = new ArrayList<>();
-        String query = "SELECT id, name, email FROM students";
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            while (rs.next()) {
-                Student student = new Student();
-                student.setId(rs.getInt("id"));
-                student.setName(rs.getString("name"));
-                student.setEmail(rs.getString("email"));
-                students.add(student);
+    public List<Student> findAll(){
+        List<Student> list=new ArrayList<>();
+        String sql="SELECT id, name, email FROM students";
+        try(Statement st=connection.createStatement(); ResultSet rs=st.executeQuery(sql)){
+            while(rs.next()){
+                Student s=new Student();
+                s.setId(rs.getLong("id"));
+                s.setName(rs.getString("name"));
+                s.setEmail(rs.getString("email"));
+                list.add(s);
             }
-            logger.info("Retrieved {} students from the database.", students.size());
-            return students;
-        } catch (SQLException e) {
-            logger.error("Error retrieving all students.", e);
-            throw new RepositoryException("Error retrieving all students.", e);
-        }
+        }catch(Exception e){ throw new RepositoryException("List students failed", e); }
+        return list;
     }
-
-    @Override
-    public boolean delete(int id) {
-        String deleteSQL = "DELETE FROM students WHERE id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
-            pstmt.setInt(1, id);
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows > 0) {
-                logger.info("Student with ID: {} deleted successfully.", id);
-                return true;
-            } else {
-                logger.warn("No student found with ID: {} to delete.", id);
-                return false;
-            }
-        } catch (SQLException e) {
-            logger.error("Error deleting student with ID: {}", id, e);
-            throw new RepositoryException("Error deleting student.", e);
-        }
+    public boolean delete(Long id){
+        String sql="DELETE FROM students WHERE id=?";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setLong(1,id);
+            int rows=ps.executeUpdate();
+            return rows>0;
+        }catch(Exception e){ throw new RepositoryException("Delete student failed", e); }
     }
-
-    @Override
-    public Student findByEmail(String email) {
-        String query = "SELECT id, name, email FROM students WHERE email = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setString(1, email);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    Student student = new Student();
-                    student.setId(rs.getInt("id"));
-                    student.setName(rs.getString("name"));
-                    student.setEmail(rs.getString("email"));
-                    logger.info("Student found by email: {}", student);
-                    return student;
-                }
-            }
-        } catch (SQLException e) {
-            logger.error("Error finding student with email: {}", email, e);
-            throw new RepositoryException("Error finding student by email.", e);
-        }
-        logger.warn("Student with email: {} not found.", email);
-        return null;
+    public void assignCourseToStudent(Long studentId, Long courseId){
+        String sql="INSERT INTO student_courses (student_id, course_id) VALUES(?,?)";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setLong(1, studentId);
+            ps.setLong(2, courseId);
+            ps.executeUpdate();
+        }catch(Exception e){ throw new RepositoryException("Assign course failed", e); }
     }
 }

@@ -2,108 +2,77 @@ package org.invoice.ui;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
 import org.invoice.controller.InvoiceController;
 import org.invoice.domain.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- * A unified main view with a navigation bar (top),
- * and dynamic center content.
- */
 public class MainView extends BorderPane {
-
-    private static final Logger logger = LoggerFactory.getLogger(MainView.class);
-
     private final InvoiceController invoiceController;
     private final User currentUser;
+    private final Stage primaryStage;
 
-    /**
-     * Constructs a MainView with the specified InvoiceController and logged-in User.
-     *
-     * @param invoiceController the controller for invoice operations
-     * @param user the logged-in User
-     */
-    public MainView(InvoiceController invoiceController, User user) {
-        this.invoiceController = invoiceController;
-        this.currentUser = user;
+    public MainView(InvoiceController ic, User u, Stage st){
+        invoiceController=ic;
+        currentUser=u;
+        primaryStage=st;
         initUI();
     }
 
-    private void initUI() {
-        // Top navigation
-        HBox navBar = new HBox(10);
-        navBar.setPadding(new Insets(10));
-        navBar.setStyle("-fx-background-color: #2C3E50;");
-        navBar.setAlignment(Pos.CENTER_LEFT);
+    private void initUI(){
+        setStyle("-fx-background-color: #ECF0F1;");
 
-        // Navigation Buttons
-        Button homeBtn = new Button("Home");
+        HBox nav=new HBox(20);
+        nav.setPadding(new Insets(15));
+        nav.setStyle("-fx-background-color: #2C3E50;");
+        nav.setAlignment(Pos.CENTER_LEFT);
+
+        Button homeBtn=new Button("Home");
         styleNavButton(homeBtn);
 
-        Button createInvoiceBtn = new Button("Create Invoice");
+        Button createInvoiceBtn=new Button("Create Invoice");
         styleNavButton(createInvoiceBtn);
 
-        Button listInvoicesBtn = new Button("List Invoices");
-        styleNavButton(listInvoicesBtn);
+        Button listInvoiceBtn=new Button("List Invoices");
+        styleNavButton(listInvoiceBtn);
 
-        Button generatePdfBtn = new Button("Generate PDF");
-        styleNavButton(generatePdfBtn);
-
-        Button logoutBtn = new Button("Logout");
+        Button logoutBtn=new Button("Logout");
         styleNavButton(logoutBtn);
 
-        Label welcomeLabel = new Label("Welcome, " + currentUser.getUsername() + "!");
-        welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 0 0 0 20;");
+        Label welcome=new Label("Hi, " + currentUser.getUsername());
+        welcome.setStyle("-fx-text-fill: white; -fx-font-weight:bold;");
 
-        navBar.getChildren().addAll(homeBtn, createInvoiceBtn, listInvoicesBtn, generatePdfBtn, logoutBtn, welcomeLabel);
-        setTop(navBar);
+        nav.getChildren().addAll(homeBtn, createInvoiceBtn, listInvoiceBtn, logoutBtn, welcome);
+        setTop(nav);
 
-        // Default center content (Home)
-        setCenter(new WelcomePanel());
-
-        // Button actions
-        homeBtn.setOnAction(e -> setCenter(new WelcomePanel()));
-
-        createInvoiceBtn.setOnAction(e -> {
-            InvoiceForm form = new InvoiceForm(invoiceController);
-            setCenter(form);
-        });
-
-        listInvoicesBtn.setOnAction(e -> {
-            InvoiceListPanel listPanel = new InvoiceListPanel(invoiceController);
-            setCenter(listPanel);
-        });
-
-        generatePdfBtn.setOnAction(e -> {
-            PdfPanel pdfPanel = new PdfPanel(invoiceController);
-            setCenter(pdfPanel);
-        });
-
-        logoutBtn.setOnAction(e -> {
-            // Build a new LoginScreen (fresh login)
-            LoginScreen newLoginScreen = new LoginScreen(
-                    // create a new LoginController if needed
+        homeBtn.setOnAction(e->setCenter(new WelcomePanel()));
+        createInvoiceBtn.setOnAction(e->setCenter(new InvoiceForm(invoiceController)));
+        listInvoiceBtn.setOnAction(e->setCenter(new InvoiceListPanel(invoiceController)));
+        logoutBtn.setOnAction(e->{
+            LoginScreen ls=new LoginScreen(
                     new org.invoice.controller.LoginController(
                             new org.invoice.service.UserService(new org.invoice.repository.UserRepositoryImpl())
-                    )
+                    ),
+                    user->{
+                        MainView mv=new MainView(invoiceController, user, primaryStage);
+                        Scene mainScene=new Scene(mv,1000,700);
+                        primaryStage.setScene(mainScene);
+                        primaryStage.setTitle("Invoice System - " + user.getUsername());
+                    }
             );
-            // On login success, show a new MainView
-            newLoginScreen.setOnLoginSuccess(loggedInUser -> {
-                MainView newMainView = new MainView(invoiceController, loggedInUser);
-                getScene().setRoot(newMainView);
-            });
-            getScene().setRoot(newLoginScreen);
-            logger.info("User {} logged out.", currentUser.getUsername());
+            Scene loginScene=new Scene(ls,600,400);
+            primaryStage.setScene(loginScene);
+            primaryStage.setTitle("Login - Invoice System");
         });
+        setCenter(new WelcomePanel());
     }
 
-    private void styleNavButton(Button btn) {
-        btn.setStyle("-fx-background-color: #34495E; -fx-text-fill: white;");
-        btn.setPrefHeight(30);
+    private void styleNavButton(Button btn){
+        btn.setStyle("-fx-background-color: #34495E; -fx-text-fill: white; -fx-font-weight: bold;");
+        btn.setPrefHeight(34);
     }
 }

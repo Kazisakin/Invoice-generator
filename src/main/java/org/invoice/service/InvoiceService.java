@@ -1,119 +1,70 @@
-// File: src/main/java/org/invoice/service/InvoiceService.java
-
 package org.invoice.service;
 
-import org.invoice.domain.Course;
 import org.invoice.domain.Invoice;
 import org.invoice.domain.Student;
 import org.invoice.exception.ServiceException;
 import org.invoice.repository.InvoiceRepository;
-
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Service layer for managing invoices.
- */
 public class InvoiceService {
+    private final InvoiceRepository repo;
 
-    private final InvoiceRepository invoiceRepository;
+    public InvoiceService(InvoiceRepository r){ repo=r; }
 
-    /**
-     * Constructs an InvoiceService with the specified InvoiceRepository.
-     *
-     * @param invoiceRepository The repository responsible for invoice data operations.
-     */
-    public InvoiceService(InvoiceRepository invoiceRepository) {
-        this.invoiceRepository = invoiceRepository;
-    }
-
-    /**
-     * Creates a new invoice by ensuring that the associated student and course exist.
-     *
-     * @param student  The student for whom the invoice is created.
-     * @param course   The course associated with the invoice.
-     * @param discount The discount applied to the course fee.
-     * @return The created Invoice object with a generated ID.
-     * @throws ServiceException If an error occurs during invoice creation.
-     */
-    public Invoice createInvoice(Student student, Course course, double discount) throws ServiceException {
-        try {
-            // Business logic: Discount should not exceed course fee
-            if (discount > course.getFee()) {
-                throw new ServiceException("Discount cannot exceed the course fee.");
-            }
-
-            // Additional business logic can be added here
-
-            Invoice invoice = new Invoice();
-            invoice.setStudent(student);
-            invoice.setCourse(course);
-            invoice.setDiscount(discount);
-            invoice.setTotalAmount(course.getFee() - discount);
-            invoice.setInvoiceDate(new Date());
-
-            return invoiceRepository.save(invoice);
-        } catch (Exception e) {
-            throw new ServiceException("Failed to create invoice.", e);
+    public Invoice createInvoice(Student stu, double subtotal, double discount, double taxRate){
+        try{
+            double st=Math.max(0, subtotal-discount);
+            double tax=st*taxRate;
+            double tot=st+tax;
+            Invoice inv=new Invoice();
+            inv.setInvoiceNumber(generateInvoiceNumber());
+            inv.setStudent(stu);
+            inv.setSubtotal(st);
+            inv.setDiscount(discount);
+            inv.setTaxRate(taxRate);
+            inv.setTaxAmount(tax);
+            inv.setTotal(tot);
+            inv.setDateIssued(LocalDate.now());
+            inv.setDueDate(LocalDate.now().plusDays(30));
+            Invoice saved = repo.save(inv);
+            // Optional auto-email stub
+            sendInvoiceEmail(saved);
+            return saved;
+        }catch(Exception e){
+            throw new ServiceException("Create invoice failed", e);
         }
     }
 
-    /**
-     * Retrieves an invoice by its unique ID.
-     *
-     * @param id The ID of the invoice.
-     * @return The Invoice object if found; null otherwise.
-     * @throws ServiceException If an error occurs during retrieval.
-     */
-    public Invoice findInvoiceById(int id) throws ServiceException {
-        try {
-            return invoiceRepository.findById(id);
-        } catch (Exception e) {
-            throw new ServiceException("Failed to retrieve invoice with ID: " + id, e);
-        }
+    // Example method: combined invoice for multiple courses
+    // public Invoice createCombinedInvoice(Student s, List<Course> courses, double disc, double taxRate){...}
+
+    private String generateInvoiceNumber(){
+        return "INV" + System.currentTimeMillis();
     }
 
-    /**
-     * Retrieves all invoices.
-     *
-     * @return A list of all Invoice objects.
-     * @throws ServiceException If an error occurs during retrieval.
-     */
-    public List<Invoice> listAllInvoices() throws ServiceException {
-        try {
-            return invoiceRepository.findAll();
-        } catch (Exception e) {
-            throw new ServiceException("Failed to retrieve all invoices.", e);
-        }
+    private void sendInvoiceEmail(Invoice inv){
+        // Stub, e.g. "Emailing invoice #inv.invoiceNumber to inv.student.email"
+        // For demonstration only
     }
 
-    /**
-     * Searches for invoices by a student's name.
-     *
-     * @param studentName The name of the student to search for.
-     * @return A list of Invoice objects associated with the specified student.
-     * @throws ServiceException If an error occurs during the search.
-     */
-    public List<Invoice> searchInvoicesByStudentName(String studentName) throws ServiceException {
-        try {
-            return invoiceRepository.findByStudentName(studentName);
-        } catch (Exception e) {
-            throw new ServiceException("Failed to search invoices by student name: " + studentName, e);
-        }
+    public Invoice findById(Long id){
+        try{ return repo.findById(id); }
+        catch(Exception e){ throw new ServiceException("Find invoice failed", e); }
     }
 
-    /**
-     * Deletes an invoice by its unique ID.
-     *
-     * @param id The ID of the invoice to delete.
-     * @return True if deletion was successful; false otherwise.
-     * @throws ServiceException If an error occurs during deletion.
-     */
-    public boolean deleteInvoice(int id) throws ServiceException {
-        try {
-            return invoiceRepository.delete(id);
-        } catch (Exception e) {
-            throw new ServiceException("Failed to delete invoice with ID: " + id, e);
-        }
+    public List<Invoice> listAllInvoices(){
+        try{ return repo.findAll(); }
+        catch(Exception e){ throw new ServiceException("List invoices failed", e); }
+    }
+
+    public boolean deleteInvoice(Long id){
+        try{ return repo.delete(id); }
+        catch(Exception e){ throw new ServiceException("Delete invoice failed", e); }
+    }
+
+    public List<Invoice> searchInvoicesByStudentName(String name){
+        try{ return repo.findByCustomerName(name); }
+        catch(Exception e){ throw new ServiceException("Search invoice by name failed", e); }
     }
 }

@@ -1,56 +1,37 @@
-// File: src/main/java/org/invoice/domain/Student.java
-
 package org.invoice.domain;
 
-/**
- * Represents a student in the system.
- */
+import java.util.ArrayList;
+import java.util.List;
+
 public class Student {
-    private Integer id;
+    private Long id;
+    private String uniqueId; // e.g., STU2023-001
     private String name;
     private String email;
+    private List<Course> courses;
 
-    // Constructors
-    public Student() {}
-
-    public Student(Integer id, String name, String email) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
+    public Student() {
+        courses = new ArrayList<>();
     }
 
-    // Getters and Setters
-    public Integer getId() {
-        return id;
+    public Student(Long i, String uid, String n, String e) {
+        id = i; uniqueId = uid; name = n; email = e;
+        courses = new ArrayList<>();
     }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long i) { id = i; }
 
-    public String getName() {
-        return name;
-    }
+    public String getUniqueId() { return uniqueId; }
+    public void setUniqueId(String uid) { uniqueId = uid; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getName() { return name; }
+    public void setName(String n) { name = n; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String e) { email = e; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    // toString
-    @Override
-    public String toString() {
-        return "Student{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                '}';
-    }
+    public List<Course> getCourses() { return courses; }
+    public void setCourses(List<Course> c) { courses = c; }
+    public void addCourse(Course c) { courses.add(c); }
 }

@@ -5,22 +5,14 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
-/**
- * A simple welcome panel displayed as the 'Home' view.
- */
 public class WelcomePanel extends VBox {
-
-    public WelcomePanel() {
-        setSpacing(20);
-        setPadding(new Insets(20));
+    public WelcomePanel(){
+        setSpacing(30);
+        setPadding(new Insets(35));
         setAlignment(Pos.CENTER);
-
-        Label title = new Label("Welcome to the Invoice Management System!");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
-
-        Label subtitle = new Label("Use the navigation buttons above to manage invoices.");
-        subtitle.setStyle("-fx-font-size: 14px;");
-
-        getChildren().addAll(title, subtitle);
+        setStyle("-fx-background-color: #BDC3C7;");
+        Label lbl=new Label("Welcome to the Student Invoice Management System");
+        lbl.setStyle("-fx-font-size:24px; -fx-text-fill:#2C3E50; -fx-font-weight:bold;");
+        getChildren().add(lbl);
     }
 }

@@ -1,137 +1,157 @@
 package org.invoice.repository;
 
-import org.invoice.domain.Course;
 import org.invoice.domain.Invoice;
 import org.invoice.domain.Student;
 import org.invoice.exception.RepositoryException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class InvoiceRepositoryImpl implements InvoiceRepository {
-
-    private static final Logger logger = LoggerFactory.getLogger(InvoiceRepositoryImpl.class);
-
-    private Connection connection;
-
+    private final Connection connection;
     public InvoiceRepositoryImpl() {
-        try {
-            this.connection = ConnectionManager.getConnection();
-        } catch (SQLException e) {
-            logger.error("Failed to establish database connection.", e);
-            throw new RepositoryException("Failed to establish database connection.", e);
-        }
+        try { connection = ConnectionManager.getConnection(); }
+        catch(SQLException e){ throw new RepositoryException("DB error", e); }
     }
 
-    @Override
-    public Invoice save(Invoice invoice) {
-        String insertInvoiceSQL = "INSERT INTO invoices (student_id, course_id, discount, total_amount, invoice_date) VALUES (?, ?, ?, ?, ?)";
-        try {
-            connection.setAutoCommit(false); // Begin transaction
-
-            // Ensure Student exists
-            Student student = invoice.getStudent();
-            if (student.getId() == null) {
-                // Insert student
-                String insertStudentSQL = "INSERT INTO students (name, email) VALUES (?, ?)";
-                try (PreparedStatement pstmt = connection.prepareStatement(insertStudentSQL, Statement.RETURN_GENERATED_KEYS)) {
-                    pstmt.setString(1, student.getName());
-                    pstmt.setString(2, student.getEmail());
-                    pstmt.executeUpdate();
-
-                    try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                        if (rs.next()) {
-                            student.setId(rs.getInt(1));
-                        } else {
-                            throw new RepositoryException("Failed to insert student, no ID obtained.", null);
-                        }
-                    }
+    public Invoice save(Invoice i) {
+        if(i.getId()==null){
+            String sql="INSERT INTO invoices (invoice_number, student_id, subtotal, discount, tax_rate, tax_amount, total, date_issued, due_date) VALUES(?,?,?,?,?,?,?,?,?)";
+            try(PreparedStatement ps=connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+                ps.setString(1, i.getInvoiceNumber());
+                ps.setObject(2, (i.getStudent()==null?null:i.getStudent().getId()), Types.BIGINT);
+                ps.setDouble(3, i.getSubtotal());
+                ps.setDouble(4, i.getDiscount());
+                ps.setDouble(5, i.getTaxRate());
+                ps.setDouble(6, i.getTaxAmount());
+                ps.setDouble(7, i.getTotal());
+                ps.setDate(8, Date.valueOf(i.getDateIssued()));
+                ps.setDate(9, Date.valueOf(i.getDueDate()));
+                ps.executeUpdate();
+                try(ResultSet rs=ps.getGeneratedKeys()){
+                    if(rs.next()) i.setId(rs.getLong(1));
                 }
-            }
-
-            // Ensure Course exists
-            Course course = invoice.getCourse();
-            if (course.getId() == null) {
-                // Insert course
-                String insertCourseSQL = "INSERT INTO courses (name, fee) VALUES (?, ?)";
-                try (PreparedStatement pstmt = connection.prepareStatement(insertCourseSQL, Statement.RETURN_GENERATED_KEYS)) {
-                    pstmt.setString(1, course.getName());
-                    pstmt.setDouble(2, course.getFee());
-                    pstmt.executeUpdate();
-
-                    try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                        if (rs.next()) {
-                            course.setId(rs.getInt(1));
-                        } else {
-                            throw new RepositoryException("Failed to insert course, no ID obtained.", null);
-                        }
-                    }
-                }
-            }
-
-            // Insert Invoice
-            try (PreparedStatement pstmt = connection.prepareStatement(insertInvoiceSQL, Statement.RETURN_GENERATED_KEYS)) {
-                pstmt.setInt(1, student.getId());
-                pstmt.setInt(2, course.getId());
-                pstmt.setDouble(3, invoice.getDiscount());
-                pstmt.setDouble(4, invoice.getTotalAmount());
-                pstmt.setDate(5, new java.sql.Date(invoice.getInvoiceDate().getTime()));
-                pstmt.executeUpdate();
-
-                try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        invoice.setId(rs.getInt(1));
-                    } else {
-                        throw new RepositoryException("Failed to insert invoice, no ID obtained.", null);
-                    }
-                }
-            }
-
-            connection.commit(); // Commit transaction
-            logger.info("Invoice saved successfully with ID: {}", invoice.getId());
-            return invoice;
-
-        } catch (SQLException e) {
-            try {
-                connection.rollback(); // Rollback transaction on error
-                logger.error("Transaction rolled back due to error.", e);
-            } catch (SQLException rollbackEx) {
-                logger.error("Failed to rollback transaction.", rollbackEx);
-            }
-            throw new RepositoryException("Failed to save invoice.", e);
-        } finally {
-            try {
-                connection.setAutoCommit(true); // Restore auto-commit
-            } catch (SQLException e) {
-                logger.error("Failed to restore auto-commit.", e);
-                throw new RepositoryException("Failed to restore auto-commit.", e);
-            }
+            }catch(Exception e){ throw new RepositoryException("Save invoice failed", e); }
+        } else {
+            String sql="UPDATE invoices SET invoice_number=?, subtotal=?, discount=?, tax_rate=?, tax_amount=?, total=?, date_issued=?, due_date=? WHERE id=?";
+            try(PreparedStatement ps=connection.prepareStatement(sql)){
+                ps.setString(1, i.getInvoiceNumber());
+                ps.setDouble(2, i.getSubtotal());
+                ps.setDouble(3, i.getDiscount());
+                ps.setDouble(4, i.getTaxRate());
+                ps.setDouble(5, i.getTaxAmount());
+                ps.setDouble(6, i.getTotal());
+                ps.setDate(7, Date.valueOf(i.getDateIssued()));
+                ps.setDate(8, Date.valueOf(i.getDueDate()));
+                ps.setLong(9, i.getId());
+                ps.executeUpdate();
+            }catch(Exception e){ throw new RepositoryException("Update invoice failed", e); }
         }
+        return i;
     }
 
-    @Override
-    public Invoice findById(int id) {
+    public Invoice findById(Long id) {
+        String sql="SELECT i.id,i.invoice_number,i.subtotal,i.discount,i.tax_rate,i.tax_amount,i.total,i.date_issued,i.due_date,s.id as sid,s.name as sname,s.email as semail " +
+                "FROM invoices i LEFT JOIN students s ON i.student_id=s.id WHERE i.id=?";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setLong(1,id);
+            try(ResultSet rs=ps.executeQuery()){
+                if(rs.next()){
+                    Invoice inv=new Invoice();
+                    inv.setId(rs.getLong("id"));
+                    inv.setInvoiceNumber(rs.getString("invoice_number"));
+                    inv.setSubtotal(rs.getDouble("subtotal"));
+                    inv.setDiscount(rs.getDouble("discount"));
+                    inv.setTaxRate(rs.getDouble("tax_rate"));
+                    inv.setTaxAmount(rs.getDouble("tax_amount"));
+                    inv.setTotal(rs.getDouble("total"));
+                    inv.setDateIssued(rs.getDate("date_issued").toLocalDate());
+                    inv.setDueDate(rs.getDate("due_date").toLocalDate());
+                    Long sid=rs.getLong("sid");
+                    if(!rs.wasNull()){
+                        Student st=new Student();
+                        st.setId(sid);
+                        st.setName(rs.getString("sname"));
+                        st.setEmail(rs.getString("semail"));
+                        inv.setStudent(st);
+                    }
+                    return inv;
+                }
+            }
+        }catch(Exception e){ throw new RepositoryException("Find invoice by id failed", e); }
         return null;
     }
 
-    @Override
     public List<Invoice> findAll() {
-        return null;
+        List<Invoice> list=new ArrayList<>();
+        String sql="SELECT i.id,i.invoice_number,i.subtotal,i.discount,i.tax_rate,i.tax_amount,i.total,i.date_issued,i.due_date,s.id as sid,s.name as sname,s.email as semail " +
+                "FROM invoices i LEFT JOIN students s ON i.student_id=s.id";
+        try(Statement Student = connection.createStatement(); ResultSet rs=Student.executeQuery(sql)){
+            while(rs.next()){
+                Invoice inv=new Invoice();
+                inv.setId(rs.getLong("id"));
+                inv.setInvoiceNumber(rs.getString("invoice_number"));
+                inv.setSubtotal(rs.getDouble("subtotal"));
+                inv.setDiscount(rs.getDouble("discount"));
+                inv.setTaxRate(rs.getDouble("tax_rate"));
+                inv.setTaxAmount(rs.getDouble("tax_amount"));
+                inv.setTotal(rs.getDouble("total"));
+                inv.setDateIssued(rs.getDate("date_issued").toLocalDate());
+                inv.setDueDate(rs.getDate("due_date").toLocalDate());
+                Long sid=rs.getLong("sid");
+                if(!rs.wasNull()){
+                    Student student =new Student();
+                    student.setId(sid);
+                    student.setName(rs.getString("sname"));
+                    student.setEmail(rs.getString("semail"));
+                    inv.setStudent(student);
+                }
+                list.add(inv);
+            }
+        }catch(Exception e){ throw new RepositoryException("List invoices failed", e); }
+        return list;
     }
 
-    @Override
-    public List<Invoice> findByStudentName(String name) {
-        return null;
+    public List<Invoice> findByCustomerName(String name) {
+        List<Invoice> list=new ArrayList<>();
+        String sql="SELECT i.id,i.invoice_number,i.subtotal,i.discount,i.tax_rate,i.tax_amount,i.total,i.date_issued,i.due_date,s.id as sid,s.name as sname,s.email as semail " +
+                "FROM invoices i LEFT JOIN students s ON i.student_id=s.id WHERE s.name LIKE ?";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setString(1, "%"+name+"%");
+            try(ResultSet rs=ps.executeQuery()){
+                while(rs.next()){
+                    Invoice inv=new Invoice();
+                    inv.setId(rs.getLong("id"));
+                    inv.setInvoiceNumber(rs.getString("invoice_number"));
+                    inv.setSubtotal(rs.getDouble("subtotal"));
+                    inv.setDiscount(rs.getDouble("discount"));
+                    inv.setTaxRate(rs.getDouble("tax_rate"));
+                    inv.setTaxAmount(rs.getDouble("tax_amount"));
+                    inv.setTotal(rs.getDouble("total"));
+                    inv.setDateIssued(rs.getDate("date_issued").toLocalDate());
+                    inv.setDueDate(rs.getDate("due_date").toLocalDate());
+                    Long sid=rs.getLong("sid");
+                    if(!rs.wasNull()){
+                        Student st=new Student();
+                        st.setId(sid);
+                        st.setName(rs.getString("sname"));
+                        st.setEmail(rs.getString("semail"));
+                        inv.setStudent(st);
+                    }
+                    list.add(inv);
+                }
+            }
+        }catch(Exception e){ throw new RepositoryException("Search invoice by name failed", e); }
+        return list;
     }
 
-    @Override
-    public boolean delete(int id) {
-        return false;
+    public boolean delete(Long id) {
+        String sql="DELETE FROM invoices WHERE id=?";
+        try(PreparedStatement ps=connection.prepareStatement(sql)){
+            ps.setLong(1,id);
+            int rows=ps.executeUpdate();
+            return rows>0;
+        }catch(Exception e){ throw new RepositoryException("Delete invoice failed", e); }
     }
-
-    // Implement other methods similarly with logging
 }
